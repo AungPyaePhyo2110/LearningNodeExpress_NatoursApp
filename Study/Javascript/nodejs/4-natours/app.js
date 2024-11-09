@@ -6,7 +6,8 @@ const userRouter = require('./routes/userRoute');
 const app = express();
 
 // 1 ) middlewares
-app.use(morgan('dev'));
+if (process.env.NODE_ENV === 'development')
+	app.use(morgan('dev'));
 
 app.use(express.json()); // middleware so that incoming string is like json
 
