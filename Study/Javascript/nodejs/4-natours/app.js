@@ -1,101 +1,33 @@
-const fs = require('fs');
 const express = require('express');
+const morgan = require('morgan');
+const tourRouter = require('./routes/tourRoute');
+const userRouter = require('./routes/userRoute');
 
 const app = express();
 
+// 1 ) middlewares
+app.use(morgan('dev'));
+
 app.use(express.json()); // middleware so that incoming string is like json
 
-const tours = JSON.parse(
-  fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`)
-);
+app.use((req, res, next) => {
+	// console.log('hello from the middleware');
+	next();
+}); // custom middleware
 
-app.get('/api/v1/tours', (req, res) => {
-  res.status(200).json({
-    status: 'success',
-    results: tours.length,
-    data: {
-      tours,
-    },
-  });
+app.use((req, res, next) => {
+	req.requestTime = new Date().toISOString();
+	next();
 });
 
-app.post('/api/v1/tours', (req, res) => {
-  const newId = tours[tours.length - 1].id + 1;
-  const newTour = { ...req.body, id: newId };
+//routes
+// this is also like applying middleware to  specific routes
+app.use('/api/v1/tours', tourRouter);
+app.use('/api/v1/users', userRouter);
+// app.use('/overview.html', (req, res) => {
+// 	res.send('Hello world!');
+// });
 
+app.use(express.static(`${__dirname}/public`)); // if there is no route , return the static files
 
-  tours.push(newTour);
-  fs.writeFile(
-    `${__dirname}/dev-data/data/tours-simple.json`,
-    JSON.stringify(tours),
-    (err) => {
-      res.status(201).json({
-        status: 'success',
-        data: {
-          tour: newTour,
-        },
-      });
-    }
-  );
-});
-
-app.get('/api/v1/tours/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const tour = tours.find(el => el.id === id)
-
-  if(!tour){
-    return res.status(404).json({
-      status : "fail",
-      message : "Invalid ID"
-    })
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data : {
-      tour
-    }
-  });
-});
-
-app.patch("/api/v1/tours/:id" , (req,res) =>{
-  const id = Number(req.params.id)
-  const tour = tours.find(el => el.id === id)
-
-  if(!tour){
-    return res.status(404).json({
-      status : "fail",
-      message : "Invalid ID"
-    })
-  }
-
-  res.status(200).json({
-    status : "success",
-    data : {
-      tour : "Updated tour ..."
-    }
-  })
-})
-
-app.delete("/api/v1/tours/:id" , (req,res) =>{
-  const id = Number(req.params.id)
-  const tour = tours.find(el => el.id === id)
-
-  if(!tour){
-    return res.status(404).json({
-      status : "fail",
-      message : "Invalid ID"
-    })
-  }
-
-  res.status(204).json({
-    status : "success",
-    data : null
-  })
-})
-
-
-const port = 3000;
-app.listen(port, () => {
-  console.log(`App running on port ${port}...`);
-});
+module.exports = app;
